@@ -1,0 +1,90 @@
+#coding:utf-8
+"""
+决策树构建：依据香农熵，信息增益大小来确定选取特征
+熵越大代表越不确定，例如：太阳从东边升起的概率为 1 ，熵为 0 ，表示不确定性为 0
+"""
+from math import log
+import time
+#1.计算香农熵—基础函数
+def calShannonEnt(dataset):
+    numEntries = len(dataset)
+    labelCounts = {}
+    for featVec in dataset:
+        currentLabel = featVec[-1]
+        if currentLabel not in labelCounts.keys():
+            labelCounts[currentLabel] = 0
+        labelCounts[currentLabel] += 1
+    shannonEnt = 0.0
+    for key in labelCounts:
+        prob = float(labelCounts[key]) / numEntries
+        shannonEnt -= prob * log(prob,2)
+    return shannonEnt
+#dataset待划分数据集：axis数据集的特征：value需要返回特征的值
+def splitDataSet(dataset, axis, value):
+    retDataset = []
+    for i in range(len(dataset)):
+        featVec=dataset[i]
+        if featVec[axis] == value:
+            print "idx:",i,"featVec:",featVec,"featVec[:axis]:",featVec[:axis],"featVec[axis+1:]:",featVec[axis+1:]
+            reducedFeatVec = featVec[:axis]
+            reducedFeatVec.extend(featVec[axis+1:])
+            retDataset.append(reducedFeatVec)
+    return retDataset
+#2.选取最好的特征
+def chooseBestFeatureToSplit(dataset):
+    numFeatures = len(dataset[0]) - 1 #特征数量
+    baseEntropy = calShannonEnt(dataset) #基础熵，也是所有特征的熵之和
+    bestInfoGain = 0.0; bestFeature = -1
+    for i in range(numFeatures):
+        featList = [example[i] for example in dataset]
+        print "featList:",featList
+        uniqueVals = set(featList)
+        print "uniqueVals:",uniqueVals
+        newEntropy =0.0
+        for value in uniqueVals:
+            subDataset = splitDataSet(dataset, i ,value)
+            print "subDataset:",subDataset
+            prob = len(subDataset) / float(len(dataset))
+            newEntropy += prob * calShannonEnt(subDataset)
+        infoGain = baseEntropy - newEntropy
+        if infoGain > newEntropy:
+            bestInfoGain = infoGain
+            bestFeature = i
+    return bestFeature
+
+#递归所有特征
+def majorityCnt(classList):
+    classCount = {}
+    for vote in classList:
+        if vote not in classCount.keys():
+            classCount[vote] = 0
+        classCount[vote] += 1
+    return max(classCount)
+
+#构建决策树
+def createTree(dataSet, labels):
+    classList = [example[-1] for example in dataSet]
+    if classList.count(classList[0]) ==len(classList):#类别相同则停止划分
+        return classList[0]
+    if len(dataSet[0]) == 1:#所有特征已经用完
+        return majorityCnt(classList)
+    bestFeat = chooseBestFeatureToSplit(dataSet)
+    bestFeatLabel = labels[bestFeat]
+    myTree = {bestFeatLabel:{}}
+    del(labels[bestFeat])
+    featValues = [example[bestFeat] for example in dataSet]
+    uniqueVals = set(featValues)
+    for value in uniqueVals:
+        subLabels = labels[:]#为了不改变原始列表的内容复制了一下
+        myTree[bestFeatLabel][value] = createTree(splitDataSet(dataSet, bestFeat, value),subLabels)
+    return myTree
+
+dataset = [[1,1,'y'], [1,1,'y'], [1,0,'n'], [0,1,'n'], [0,1,'n']]
+labels = ['no surfaceing','flippers']
+t1 = time.clock()
+myTree = createTree(dataset,labels)
+t2 = time.clock()
+print 'Tree:',myTree
+print 'execute for ',t2-t1
+#print calShannonEnt(myDataset)
+#print chooseBestFeatureToSplit(dataset)
