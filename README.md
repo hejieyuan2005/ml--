@@ -29,3 +29,5 @@ FP-growth高效频繁项集发现
 PCA降维
 
 SVD
+
+https://github.com/Jack-Cherish/Machine-Learning 这位同学写的挺好，学习了，感谢了
